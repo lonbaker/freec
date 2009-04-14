@@ -12,6 +12,15 @@ Echoe.new('freec', '0.1.0') do |p|
   p.development_dependencies = ['rspec']
 end
 
+desc 'Clean up files.'
+task :clean do |t|
+  FileUtils.rm_rf "doc"
+  FileUtils.rm_rf "tmp"
+  FileUtils.rm_rf "pkg"
+  FileUtils.rm "test/debug.log" rescue nil
+  FileUtils.rm "test/paperclip.db" rescue nil
+end
+
 spec = Gem::Specification.new do |s| 
   s.name              = "freec"
   s.version           = '0.1.0'
@@ -24,7 +33,6 @@ spec = Gem::Specification.new do |s|
                                  "Rakefile",
                                  "{lib,spec}/**/*"].to_a
   s.require_path      = "lib"
-  #s.test_files        = FileList["test/**/test_*.rb"].to_a
   s.rubyforge_project = "freec"
   s.has_rdoc          = false
   s.extra_rdoc_files  = FileList["README*"].to_a
