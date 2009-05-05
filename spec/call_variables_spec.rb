@@ -1,14 +1,14 @@
 require "#{File.dirname(__FILE__)}/spec_helper"
 
 
-describe "how Freec makes accessible call variables" do
+describe "how Freec makes call variables accessible" do
 
   before do
     class FreecForCallsVarSpec < Freec
       def post_init
         #changed for this spec
         log.level = Logger::FATAL 
-        @response = SAMPLE_CALL_VARIABLES
+        @response = EVENT
         parse_response
       end
     end

@@ -1,5 +1,8 @@
-unless defined?(SAMPLE_CALL_VARIABLES)
-SAMPLE_CALL_VARIABLES=<<STRING
+unless defined?(EVENT)
+EVENT=<<STRING
+Content-Length: 592
+Content-Type: text/event-plain
+
 Channel-Username: 1001
 Channel-Dialplan: XML
 Channel-Caller-ID-Name: 1001
