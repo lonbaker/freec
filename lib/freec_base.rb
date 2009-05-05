@@ -11,7 +11,7 @@ class Freec < EventMachine::Connection
   include FreeswitchApplications
   include CallVariables
 
-  attr_reader :call_vars, :log
+  attr_reader :call_vars, :event_body, :log
   
   def initialize(*args) #:nodoc:
     super
@@ -100,7 +100,14 @@ private
   end
   
   def response_complete?
-    @response[-2..-1] == "\n\n"    
+    @response[-2..-1] == "\n\n" || event_with_body_complete?
+  end
+  
+  def event_with_body_complete?
+    expected_body_length = @response.sub(/.*Content-Length.*^Content-Length: ([0-9]+)$.*/m, '\1').to_i
+    return false if expected_body_length == 0
+    @event_body = @response.sub(/.*\n\n.*\n\n(.*)/m, '\1').strip
+    @event_body.length == expected_body_length
   end
   
   def subscribe_to_events_if_not_subscribed
@@ -134,7 +141,7 @@ private
     @response.split("\n").each do |line|
       k,v = line.split(/\s*:\s*/)
       hash[k.strip.gsub('-', '_').downcase.to_sym] = URI.unescape(v).strip if k && v
-    end    
+    end
     @call_vars ||= {}
     call_vars.merge!(hash)
     @unique_id ||= call_vars[:unique_id]

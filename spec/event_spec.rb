@@ -1,18 +1,17 @@
 require "#{File.dirname(__FILE__)}/spec_helper"
 
 
-describe "how Freec makes call variables accessible" do
+describe "Freec parses body-less event" do
 
   before do
-    class FreecForCallsVarSpec < Freec
+    class FreecForEventSpec < Freec
       def post_init
-        #changed for this spec
         log.level = Logger::FATAL 
         @response = EVENT
         parse_response
       end
     end
-    @freec = FreecForCallsVarSpec.new('')
+    @freec = FreecForEventSpec.new('')
   end
   
   it "should make the value of the sip_from_user variable available as a method" do
@@ -26,6 +25,22 @@ describe "how Freec makes call variables accessible" do
   it "should make the value of the channel_destination_number variable available as a method" do
     @freec.channel_destination_number.should == '886'
   end
+end
 
+describe "Freec parses an event with a body" do
+  before do
+    class FreecForEventSpec < Freec
+      def post_init
+        log.level = Logger::FATAL 
+        @response = EVENT_WITH_BODY
+        parse_response
+      end
+    end
+    @freec = FreecForEventSpec.new('')
+  end
+    
+  it "should parse the variables from the event header" do
+    @freec.call_vars[:event_name].should == 'DETECTED_SPEECH'
+  end
 
 end

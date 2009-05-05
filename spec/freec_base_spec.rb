@@ -36,16 +36,27 @@ describe "Freec's receive_data hook" do
     @freec = FreecForSpec.new('')
   end
     
-  it "should only stuff data in the response buffer if doesn't end with two new line characters" do
+  it "should recognize the response buffer is not a complete response if it doesn't end with two new lines and it's not an event with body" do
     @freec.receive_data('hey')
     @freec.send(:response_complete?).should be_false
     @freec.instance_variable_get(:@response).should == 'hey'
   end
 
-  it "should only recognize the response as complete its data ends with two new line characters" do
+  it "should recognize the response as complete if its data ends with two new line characters" do
     @freec.receive_data(EVENT)
     @freec.send(:response_complete?).should be_true
     @freec.instance_variable_get(:@response).should == EVENT
+  end
+
+  it "should recognize the response as complete if it is a complete event with body" do
+    @freec.receive_data(EVENT_WITH_BODY)
+    @freec.send(:response_complete?).should be_true
+    @freec.instance_variable_get(:@response).should == EVENT_WITH_BODY
+  end
+
+  it "should make the body of the response available as a public method" do
+    @freec.receive_data(EVENT_WITH_BODY)
+    @freec.event_body.should =~ /<\/interpretation>$/
   end
   
   it "should subscribe to events" do
