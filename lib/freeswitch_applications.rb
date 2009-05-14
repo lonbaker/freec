@@ -70,7 +70,7 @@ module FreeswitchApplications
   end
 
   # Hangs up the call.
-  def hangup_app
+  def hangup
     execute_app('hangup')
   end  
   
@@ -88,6 +88,6 @@ module FreeswitchApplications
     cmd << "\nexecute-app-name: #{app}"
     cmd << "\nexecute-app-arg: #{pars}" unless pars.blank?
     cmd << "\nevent-lock:#{lock}"
-    send_response cmd
+    send_data cmd
   end  
 end

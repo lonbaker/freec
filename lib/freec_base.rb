@@ -1,41 +1,42 @@
+require 'gserver'
 require 'rubygems'
-require 'eventmachine'
-require 'extlib'
 require 'uri'
 
+require 'tools'
 require "freeswitch_applications"
 require "call_variables"
-require 'freec_logger'
 
-class Freec < EventMachine::Connection
+class Freec
   include FreeswitchApplications
   include CallVariables
-
+  
   attr_reader :call_vars, :event_body, :log
   
-  def initialize(*args) #:nodoc:
-    super
-    @log = FreecLogger.new(['development', 'test'].include?(ENVIRONMENT) ? STDOUT : @@log_file)
-    connect_to_database
+  def initialize(io, log) #:nodoc:
+    @call_vars ||= {}
+    @last_app_executed = 'initial_step'
+    @io = io    
+    @log = log
   end
-  
-  def post_init #:nodoc:
-    send_response "connect"
-  end
-  
-  def receive_data(data) #:nodoc:
-    read_response(data)
-    return unless response_complete?
-    return unless subscribe_to_events_if_not_subscribed
-    parse_response
-    if last_event_dtmf? && respond_to?(:on_dtmf)
-      callback(:on_dtmf, call_vars[:dtmf_digit])
-    elsif waiting_for_this_response? && reset_wait_for || execute_completed?
-      reload_application_code
-      hangup unless callback(:step)
+        
+  def handle_call #:nodoc:
+    call_initialization
+    loop do
+      if last_event_dtmf? && respond_to?(:on_dtmf)
+        callback(:on_dtmf, call_vars[:dtmf_digit])
+      elsif waiting_for_this_response? || execute_completed?
+        reset_wait_for if waiting_for_this_response?
+        reload_application_code
+        break if !callback(:step) || disconnect_notice?
+      end
+      read_response
+      parse_response
     end
+    hangup
+    callback(:on_hangup)
+    send_and_read('exit')
   end
-  
+    
   def wait_for(key, value)
     @waiting_for_key = key && key.to_sym
     @waiting_for_value = value
@@ -45,25 +46,21 @@ class Freec < EventMachine::Connection
     wait_for(nil, nil)
     true 
   end  
-
-  #Hangs up the call and closes the connection to Freeswitch.
-  def hangup
-    hangup_app
-    close_session
-  end
-  
-  def unbind  #:nodoc:
-    callback(:on_hangup) if respond_to?(:on_hangup)
-  end
-  
+    
   def execute_completed?
-    (channel_execute_complete? || channel_destroyed_after_bridge?) &&
+    (channel_execute_complete? || channel_destroyed_after_bridge? || disconnect_notice?) &&
     call_vars[:unique_id] == @unique_id
   end
   
 private
 
+  def call_initialization
+    connect_to_freeswitch
+    subscribe_to_events    
+  end
+
   def channel_execute_complete?
+    return true if @last_app_executed == 'initial_step'
     complete =  call_vars[:content_type] == 'text/event-plain' && 
                 call_vars[:event_name] == 'CHANNEL_EXECUTE_COMPLETE' &&
                 @last_app_executed == call_vars[:application]
@@ -73,6 +70,10 @@ private
   
   def channel_destroyed_after_bridge?
     call_vars[:application] == 'bridge' && call_vars[:event_name] == 'CHANNEL_DESTROY'
+  end
+  
+  def disconnect_notice?
+    call_vars[:content_type] == 'text/disconnect-notice'
   end
 
   def callback(callback_name, *args)
@@ -94,9 +95,41 @@ private
     end
   end
 
-  def read_response(data)
-    @response ||= ''
-    @response += data
+  def connect_to_freeswitch
+    send_and_read('connect')
+    parse_response
+  end
+  
+  def subscribe_to_events
+    send_and_read('myevents')
+    parse_response
+  end
+      
+  def waiting_for_this_response?
+    @waiting_for_key && @waiting_for_value && call_vars[@waiting_for_key] == @waiting_for_value
+  end
+  
+  def last_event_dtmf?
+    call_vars[:content_type] == 'text/event-plain' && call_vars[:event_name] == 'DTMF' && call_vars[:unique_id] == @unique_id
+  end
+          
+  def send_data(data)
+    log.debug "Sending: #{data}"
+    @io.write("#{data}\n\n") unless disconnect_notice?
+  end
+  
+  def send_and_read(data)
+    send_data(data)
+    read_response
+  end
+  
+  def read_response
+    return if disconnect_notice?
+    @response = ''
+    begin
+      line = @io.gets 
+      @response += line if line
+    end until response_complete?
   end
   
   def response_complete?
@@ -109,40 +142,13 @@ private
     @event_body = @response.sub(/.*\n\n.*\n\n(.*)/m, '\1').strip
     @event_body.length == expected_body_length
   end
-  
-  def subscribe_to_events_if_not_subscribed
-    return true if @subscribed_to_events
-    send_response 'myevents'
-    @subscribed_to_events = true
-    wait_for(:content_type, 'command/reply')
-    false
-  end
-      
-  def waiting_for_this_response?
-    @waiting_for_key && @waiting_for_value && call_vars[@waiting_for_key] == @waiting_for_value
-  end
-  
-  def last_event_dtmf?
-    call_vars[:content_type] == 'text/event-plain' && call_vars[:event_name] == 'DTMF' && call_vars[:unique_id] == @unique_id
-  end
-    
-  def close_session
-    send_response "exit"
-    close_connection_after_writing      
-  end
-      
-  def send_response(data)
-    log.debug "Sent: #{data}"
-    send_data("#{data}\n\n")
-  end
     
   def parse_response
     hash = {}
     @response.split("\n").each do |line|
       k,v = line.split(/\s*:\s*/)
       hash[k.strip.gsub('-', '_').downcase.to_sym] = URI.unescape(v).strip if k && v
-    end
-    @call_vars ||= {}
+    end    
     call_vars.merge!(hash)
     @unique_id ||= call_vars[:unique_id]
     raise call_vars[:reply_text] if call_vars[:reply_text] =~ /^-ERR/
@@ -151,11 +157,5 @@ private
     log.debug "#{object_id}\t#{call_vars[:content_type]}\t#{call_vars[:application]}\t#{call_vars[:event_name]}"
     @response = ''
   end
-  
-  def connect_to_database
-    return unless @@config['database'] && @@config['database'][ENVIRONMENT]
-    require 'active_record'
-    ActiveRecord::Base.establish_connection(@@config['database'][ENVIRONMENT])
-  end  
   
 end

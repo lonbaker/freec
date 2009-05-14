@@ -1,6 +1,7 @@
 lib_dir = File.dirname(__FILE__)
 $LOAD_PATH.unshift(lib_dir) unless $LOAD_PATH.include?(lib_dir)
 require "freec_base"
+require 'listener'
 
 require 'fileutils'
 require 'daemons/daemonize'
@@ -54,9 +55,13 @@ unless defined?(TEST)
       daemonize(freec_app_log_file)
     end
     open(freec_app_pid_file, "w") {|f| f.write(Process.pid) }
-    EventMachine::run do
-      EventMachine::start_server '0.0.0.0', @@config['listen_port'].to_i, Kernel.const_get(freec_app_class_name)
-      puts "Listening on port #{@@config['listen_port']}"
+
+    server = Listener.new('0.0.0.0', @@config['listen_port'].to_i, freec_app_class_name)
+    server.audit = true
+    server.start
+    puts "Listening on port #{@@config['listen_port']}"
+    loop do
+      break if server.stopped?
     end
   end
 end

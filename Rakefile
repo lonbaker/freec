@@ -2,33 +2,30 @@ require 'rubygems'
 require 'rake'
 require 'echoe'
 
-Echoe.new('freec', '0.1.0') do |p|
-  p.description    = "Layer between your voice app and Freeswitch."
+Echoe.new('freec', '0.2.0') do |p|
+  p.description    = "Layer between your Ruby voice app and Freeswitch."
   p.url            = "http://github.com/jankubr/freec"
   p.author         = "Jan Kubr"
   p.email          = "hi@jankubr.com"
   p.ignore_pattern = []
-  p.runtime_dependencies = ['daemons', 'eventmachine', 'extlib']
+  p.runtime_dependencies = ['daemons']
   p.development_dependencies = ['rspec']
 end
 
 desc 'Clean up files.'
 task :clean do |t|
-  FileUtils.rm_rf "doc"
   FileUtils.rm_rf "tmp"
   FileUtils.rm_rf "pkg"
-  FileUtils.rm "test/debug.log" rescue nil
-  FileUtils.rm "test/paperclip.db" rescue nil
 end
 
 spec = Gem::Specification.new do |s| 
   s.name              = "freec"
-  s.version           = '0.1.0'
+  s.version           = '0.2.0'
   s.author            = "Jan Kubr"
   s.email             = "hi@jankubr.com"
   s.homepage          = "http://github.com/jankubr/freec"
   s.platform          = Gem::Platform::RUBY
-  s.summary           = "Layer between your voice app and Freeswitch."
+  s.summary           = "Layer between your Ruby voice app and Freeswitch."
   s.files             = FileList["README*",
                                  "Rakefile",
                                  "{lib,spec}/**/*"].to_a
@@ -38,8 +35,6 @@ spec = Gem::Specification.new do |s|
   s.extra_rdoc_files  = FileList["README*"].to_a
   s.rdoc_options << '--line-numbers' << '--inline-source'
   s.requirements << "daemons"
-  s.add_runtime_dependency 'eventmachine'
-  s.add_runtime_dependency 'extlib'
   s.add_development_dependency 'rspec'
 end
 
@@ -49,6 +44,7 @@ task :gemspec do
     f.write spec.to_ruby
   end
 end
+
 require 'spec/rake/spectask'
 
 desc "Run all specs"
