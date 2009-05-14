@@ -16,13 +16,13 @@ describe Freec do
     end
     
     it "should read unique id from response" do
-      @freec.instance_variable_get(:@unique_id).should == '40117b0a-186e-11dd-bbcd-7b74b6b4d31e'
+      @freec.instance_variable_get(:@unique_id).should == 'f3c2d5ee-d064-4f55-9280-5be2a65867e8'
     end
     
     it "should parse variables from response" do
-      @freec.call_vars[:channel_username].should == '1001'
+      @freec.call_vars[:call_direction].should == 'inbound'
       @freec.call_vars[:caller_context].should == 'default'
-      @freec.call_vars[:variable_sip_user_agent].should == 'snom300/7.1.30'
+      @freec.call_vars[:application].should == 'set'
     end    
   
     it "should make the value of the sip_from_user variable available as a method" do
@@ -46,6 +46,10 @@ describe Freec do
       
     it "should parse the variables from the event header" do
       @freec.call_vars[:event_name].should == 'DETECTED_SPEECH'
+    end
+    
+    it "makes the body of the response available as a public method" do
+      @freec.event_body.should =~ /<\/interpretation>$/
     end
 
   end

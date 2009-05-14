@@ -20,7 +20,7 @@ class Freec
   end
         
   def handle_call #:nodoc:
-    call_initialization
+    call_initialization    
     loop do
       if last_event_dtmf? && respond_to?(:on_dtmf)
         callback(:on_dtmf, call_vars[:dtmf_digit])
@@ -28,7 +28,7 @@ class Freec
         reset_wait_for if waiting_for_this_response?
         reload_application_code
         break if !callback(:step) || disconnect_notice?
-      end
+      end      
       read_response
       parse_response
     end
@@ -56,7 +56,7 @@ private
 
   def call_initialization
     connect_to_freeswitch
-    subscribe_to_events    
+    subscribe_to_events
   end
 
   def channel_execute_complete?
@@ -102,7 +102,7 @@ private
   
   def subscribe_to_events
     send_and_read('myevents')
-    parse_response
+    parse_response    
   end
       
   def waiting_for_this_response?
@@ -125,26 +125,36 @@ private
   
   def read_response
     return if disconnect_notice?
+    read_response_info
+    read_event
+  end
+  
+  def read_response_info
     @response = ''
     begin
-      line = @io.gets 
-      @response += line if line
-    end until response_complete?
+      line = @io.gets.to_s
+      @response += line
+    end until @response[-2..-1] == "\n\n"    
   end
   
-  def response_complete?
-    @response[-2..-1] == "\n\n" || event_with_body_complete?
+  def read_event
+    header_length = @response.sub(/^Content-Length: ([0-9]+)$.*/m, '\1').to_i
+    return if header_length == 0
+    event = ''
+    begin
+      line = @io.gets.to_s
+      event += line.to_s
+    end until event.length == header_length
+    @response += event        
   end
-  
-  def event_with_body_complete?
-    expected_body_length = @response.sub(/.*Content-Length.*^Content-Length: ([0-9]+)$.*/m, '\1').to_i
-    return false if expected_body_length == 0
-    @event_body = @response.sub(/.*\n\n.*\n\n(.*)/m, '\1').strip
-    @event_body.length == expected_body_length
-  end
-    
+        
   def parse_response
     hash = {}
+    if @response =~ /^Content-Length.*^Content-Length/m
+      @event_body = @response.sub(/.*\n\n.*\n\n(.*)/m, '\1').strip 
+    else
+      @event_body = nil
+    end
     @response.split("\n").each do |line|
       k,v = line.split(/\s*:\s*/)
       hash[k.strip.gsub('-', '_').downcase.to_sym] = URI.unescape(v).strip if k && v
