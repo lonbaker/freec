@@ -27,7 +27,7 @@ class Freec
       elsif waiting_for_this_response? || execute_completed?
         reset_wait_for if waiting_for_this_response?
         reload_application_code
-        break if !callback(:step) || disconnect_notice?
+        break if disconnect_notice? || !callback(:step)
       end      
       read_response
       parse_response
