@@ -62,6 +62,7 @@ unless defined?(TEST)
     puts "Listening on port #{@@config['listen_port']}"
     loop do
       break if server.stopped?
+      sleep(1)
     end
   end
 end
