@@ -48,8 +48,8 @@ describe Freec do
     
     it "reads the full event with body" do
       @io.should_receive(:gets).and_return(event_parts(EVENT_WITH_BODY)[0], 
-                                          event_parts(EVENT_WITH_BODY)[1], 
-                                          event_parts(EVENT_WITH_BODY)[2].strip.chomp)
+                                          event_parts(EVENT_WITH_BODY)[1])
+      @io.should_receive(:read).and_return(event_parts(EVENT_WITH_BODY)[2].strip.chomp)
       @freec.send(:read_response)
     end
   

@@ -1,6 +1,6 @@
 unless defined?(EVENT_WITH_BODY)
 EVENT_WITH_BODY=<<STRING
-Content-Length: 592
+Content-Length: 460
 Content-Type: text/event-plain
 
 Event-Name: DETECTED_SPEECH

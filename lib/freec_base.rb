@@ -126,7 +126,8 @@ private
   def read_response
     return if disconnect_notice?
     read_response_info
-    read_event
+    read_event_header
+    read_event_body
   end
   
   def read_response_info
@@ -137,15 +138,26 @@ private
     end until @response[-2..-1] == "\n\n"    
   end
   
-  def read_event
+  def read_event_header
     header_length = @response.sub(/^Content-Length: ([0-9]+)$.*/m, '\1').to_i
     return if header_length == 0
-    event = ''
+    header = ''
     begin
       line = @io.gets.to_s
-      event += line.to_s
-    end until event.length == header_length
-    @response += event        
+      header += line.to_s
+    end until header[-2..-1] == "\n\n"
+    @response += header        
+  end
+  
+  def read_event_body
+    body_length = @response.sub(/^Content-Length.*^Content-Length: ([0-9]+)$.*/m, '\1').to_i
+    return if body_length == 0
+    body = ''
+    begin
+      line = @io.read(body_length).to_s
+      body += line.to_s
+    end until body.length == body_length
+    @response += body    
   end
         
   def parse_response
