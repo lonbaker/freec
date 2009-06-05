@@ -17,6 +17,13 @@ module FreeswitchApplications
     execute_app('phrase', "spell,#{string}")
   end
   
+  # Says the given string
+  # Don't forget to set up your TTS engine and set variables tts_engine and tts_voice accordingly
+  # See e.g.: http://wiki.freeswitch.org/wiki/Mod_flite
+  def speak(string)
+    execute_app('speak', string)
+  end
+  
   # Bridges the call to the given number or numbers (this param can be a number or an array of numbers).
   def bridge(number_or_numbers, options = {})
     number_or_numbers = number_or_numbers.join(",") if number_or_numbers.is_a?(Array)

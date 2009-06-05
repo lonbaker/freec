@@ -44,6 +44,11 @@ describe Freec do
       @freec.spell('abcd')
     end
 
+    it "should execute the speak app when called the speak method" do
+      @freec.should_receive(:send_data).with(freeswitch_command('speak', 'hello'))
+      @freec.speak('hello')
+    end
+
     it "should execute the bridge app when called the bridge method" do
       @freec.should_receive(:send_data).with(freeswitch_command('bridge', 'user/brian@10.0.1.2'))
       @freec.bridge('user/brian@10.0.1.2')
