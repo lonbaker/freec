@@ -32,9 +32,11 @@ class Freec
       read_response
       parse_response
     end
-    hangup
     callback(:on_hangup)
-    send_and_read('exit')
+    unless disconnect_notice?
+      hangup    
+      send_and_read('exit')
+    end
   end
     
   def wait_for(key, value)

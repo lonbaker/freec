@@ -102,15 +102,15 @@ describe Freec do
       @freec.handle_call
     end
     
-    it "should exit when Freeswitch disconnects (e.g. caller hangs up) and not call the step callback" do
+    it "should exit when Freeswitch disconnects (e.g. caller hangs up) and neither call the step callback nor send any other data to Freeswitch" do
       disconnect_event = EVENT.sub('text/event-plain', 'text/disconnect-notice')
       @freec.should_receive(:send_data).with("connect")
       @freec.should_receive(:send_data).with("myevents")      
       @io.should_receive(:gets).and_return(initial_response, event_parts(disconnect_event)[0], event_parts(disconnect_event)[1])
       @freec.should_receive(:step).never
-      @freec.should_receive(:execute_app).with('hangup')
       @freec.should_receive(:on_hangup)
-      @freec.should_receive(:send_data).with("exit")      
+      @freec.should_receive(:execute_app).never      
+      @freec.should_receive(:send_data).never
       @freec.handle_call
     end
       
