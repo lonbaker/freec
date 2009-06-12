@@ -176,9 +176,7 @@ private
     call_vars.merge!(hash)
     @unique_id ||= call_vars[:unique_id]
     raise call_vars[:reply_text] if call_vars[:reply_text] =~ /^-ERR/
-    log.debug "Received:"
-    log.debug "Session ID\tContent-type\tApplication\tEvent name"
-    log.debug "#{object_id}\t#{call_vars[:content_type]}\t#{call_vars[:application]}\t#{call_vars[:event_name]}"
+    log.debug "\n\tSession ID: #{object_id}\n\tContent-type: #{call_vars[:content_type]}\n\tEvent name: #{call_vars[:event_name]}"
     @response = ''
   end
   
