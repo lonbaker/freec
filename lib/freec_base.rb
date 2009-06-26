@@ -33,10 +33,8 @@ class Freec
       parse_response
     end
     callback(:on_hangup)
-    unless disconnect_notice?
-      hangup    
-      send_and_read('exit')
-    end
+    hangup unless @io.closed?
+    send_and_read('exit') unless @io.closed?
   end
     
   def wait_for(key, value)
@@ -50,8 +48,7 @@ class Freec
   end  
     
   def execute_completed?
-    (channel_execute_complete? || channel_destroyed_after_bridge? || disconnect_notice?) &&
-    call_vars[:unique_id] == @unique_id
+    channel_execute_complete? || channel_destroyed_after_bridge? || disconnect_notice?
   end
   
 private
@@ -103,7 +100,9 @@ private
   end
   
   def subscribe_to_events
-    send_and_read('myevents')
+    send_and_read('events plain all')
+    parse_response    
+    send_and_read("filter Unique-ID #{@unique_id}") 
     parse_response    
   end
       
@@ -112,7 +111,7 @@ private
   end
   
   def last_event_dtmf?
-    call_vars[:content_type] == 'text/event-plain' && call_vars[:event_name] == 'DTMF' && call_vars[:unique_id] == @unique_id
+    call_vars[:content_type] == 'text/event-plain' && call_vars[:event_name] == 'DTMF'
   end
           
   def send_data(data)
@@ -176,7 +175,7 @@ private
     call_vars.merge!(hash)
     @unique_id ||= call_vars[:unique_id]
     raise call_vars[:reply_text] if call_vars[:reply_text] =~ /^-ERR/
-    log.debug "\n\tSession ID: #{object_id}\n\tContent-type: #{call_vars[:content_type]}\n\tEvent name: #{call_vars[:event_name]}"
+    log.debug "\n\tUnique ID: #{call_vars[:unique_id]}\n\tContent-type: #{call_vars[:content_type]}\n\tEvent name: #{call_vars[:event_name]}"
     @response = ''
   end
   
