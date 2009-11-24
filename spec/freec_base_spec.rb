@@ -135,6 +135,20 @@ describe Freec do
   
   describe "custom waiting conditions" do
     
+     it "should return true from waiting_for_this_response? when the conditions for the response are met" do
+        @freec.wait_for(:content_type, 'api/response')
+        @freec.instance_variable_set(:@response, API_RESPONSE)
+        @freec.send(:parse_response)
+        @freec.send(:waiting_for_this_response?).should be_true
+      end
+      #   
+      it "should return false from waiting_for_this_response? when the conditions for the response are not met" do
+        @freec.wait_for(:content_type, 'text/event-plain')
+        @freec.instance_variable_set(:@response, API_RESPONSE)
+        @freec.send(:parse_response)
+        @freec.send(:waiting_for_this_response?).should be_false
+      end
+      
     # it "should return true from waiting_for_this_response? when the conditions for the response are met" do
     #   @freec.wait_for(:content_type, 'command/reply')
     #   @freec.instance_variable_set(:@response, EVENT)

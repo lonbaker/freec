@@ -10,3 +10,5 @@ TEST = true unless defined?(TEST)
 require 'freec'
 require 'event'
 require 'event_with_body'
+require 'command_reply'
+require 'api_response'
